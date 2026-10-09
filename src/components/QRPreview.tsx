@@ -4,7 +4,7 @@ import type { QRCodeSettings, QRCodeData } from '../types';
 import { generatePayload } from '../utils/qrPayload';
 import { validateData } from '../utils/validation';
 import { checkReliability } from '../utils/contrast';
-import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ScanLine } from 'lucide-react';
 
 interface Props {
   data: QRCodeData;
@@ -22,7 +22,7 @@ export const QRPreview: React.FC<Props> = ({ data, settings, onDownloadReady, on
     const renderQR = async () => {
       const validationErrors = validateData(data);
       if (Object.keys(validationErrors).length > 0) {
-        setError('Please fix the input errors to generate the QR code.');
+        setError('Fix the input errors above to generate the QR code.');
         return;
       }
 
@@ -40,19 +40,15 @@ export const QRPreview: React.FC<Props> = ({ data, settings, onDownloadReady, on
           await QRCode.toCanvas(canvasRef.current, payload, {
             width: settings.size,
             margin: settings.margin,
-            color: {
-              dark: settings.fgColor,
-              light: settings.bgColor,
-            },
+            color: { dark: settings.fgColor, light: settings.bgColor },
             errorCorrectionLevel: settings.level,
           });
-          
           const dataUrl = canvasRef.current.toDataURL('image/png');
           onDownloadReady(dataUrl);
           onGenerateSuccess();
         } catch (err) {
           console.error(err);
-          setError('Failed to generate QR Code. Data may be too large for this error correction level.');
+          setError('Failed to generate QR Code. Data may be too large for this correction level.');
         }
       }
     };
@@ -61,34 +57,47 @@ export const QRPreview: React.FC<Props> = ({ data, settings, onDownloadReady, on
   }, [data, settings, onDownloadReady, onGenerateSuccess]);
 
   return (
-    <div className="preview-container">
-      {error ? (
-        <div className="empty-state">
-          <Info size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <p>{error}</p>
-        </div>
-      ) : (
-        <>
-          <div className="qr-canvas-wrapper">
-            <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto', display: 'block' }}></canvas>
+    <div className="flex flex-col items-center gap-4">
+      {/* Canvas area */}
+      <div className="
+        w-full flex items-center justify-center
+        rounded-xl border border-white/10 bg-white/[0.03]
+        p-6 min-h-[220px]
+      ">
+        {error ? (
+          <div className="flex flex-col items-center gap-3 text-center px-4">
+            <ScanLine size={32} className="text-neutral-600" />
+            <p className="text-xs text-neutral-500 leading-relaxed max-w-[200px]">{error}</p>
           </div>
-          
-          <div style={{ marginTop: '1.5rem', width: '100%' }}>
-            {warnings.length === 0 ? (
-              <div className="success-alert">
-                <CheckCircle size={20} />
-                <span>High Scan Reliability. This QR code is recommended.</span>
-              </div>
-            ) : (
-              warnings.map((w, i) => (
-                <div key={i} className="warning-alert">
-                  <AlertTriangle size={20} />
-                  <span>{w.message}</span>
+        ) : (
+          <div className="rounded-lg overflow-hidden" style={{ lineHeight: 0 }}>
+            <canvas
+              ref={canvasRef}
+              style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Reliability feedback */}
+      {!error && (
+        <div className="w-full">
+          {warnings.length === 0 ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05]">
+              <CheckCircle size={13} className="text-emerald-500 shrink-0" />
+              <span className="text-[11px] text-emerald-400 leading-relaxed">High scan reliability</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {warnings.map((w, i) => (
+                <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.05]">
+                  <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                  <span className="text-[11px] text-amber-400 leading-relaxed">{w.message}</span>
                 </div>
-              ))
-            )}
-          </div>
-        </>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
